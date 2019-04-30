@@ -14,6 +14,8 @@ const sep = require("os").EOL;
 const { execSync } = require("child_process");
 const { argv } = yargs
 	.usage("Usage:\n  ntl [<path>]")
+	.alias("idx", "index")
+	.describe("idx", "auto excute special index item")
 	.alias("a", "all")
 	.describe("a", "Includes pre and post scripts on the list")
 	.alias("A", "autocomplete")
@@ -43,7 +45,7 @@ const { argv } = yargs
 
 const pkg = require("./package");
 const cwd = argv._[0] ? path.join(process.cwd(), argv._[0]) : process.cwd();
-const { autocomplete, multiple, size } = argv;
+const { autocomplete, multiple, size, index } = argv;
 
 function error(e, msg) {
 	out.error(argv.debug ? e : msg);
@@ -109,21 +111,30 @@ const input = (argv.info || argv.descriptions
 
 out.success("Npm Task List - v" + pkg.version);
 
-// creates interactive interface using ipt
-ipt(input, {
-	message: "Select a task to run:",
-	autocomplete,
-	multiple,
-	size
-})
-	.then(keys => {
-		keys.forEach(key => {
-			execSync(`npm run ${key}`, {
-				cwd,
-				stdio: [process.stdin, process.stdout, process.stderr]
-			});
-		});
-	})
-	.catch(err => {
-		error(err, "Error building interactive interface");
+if (index) {
+	const task = tasks[index]
+	execSync(`npm run ${task}`, {
+		cwd,
+		stdio: [process.stdin, process.stdout, process.stderr]
 	});
+} else {
+	// creates interactive interface using ipt
+	ipt(input, {
+		message: "Select a task to run:",
+		autocomplete,
+		multiple,
+		size
+	})
+		.then(keys => {
+			keys.forEach(key => {
+				execSync(`npm run ${key}`, {
+					cwd,
+					stdio: [process.stdin, process.stdout, process.stderr]
+				});
+			});
+		})
+		.catch(err => {
+			error(err, "Error building interactive interface");
+		});
+}
+
